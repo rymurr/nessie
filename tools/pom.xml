@@ -32,5 +32,6 @@
 
   <modules>
     <module>apprunner-maven-plugin</module>
+    <module>test-server</module>
   </modules>
 </project>
