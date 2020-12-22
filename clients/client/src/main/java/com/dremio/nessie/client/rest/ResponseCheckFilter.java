@@ -21,9 +21,7 @@ import java.io.InputStream;
 import com.dremio.nessie.client.http.HttpClientException;
 import com.dremio.nessie.client.http.ResponseContext;
 import com.dremio.nessie.client.http.Status;
-import com.dremio.nessie.error.NessieConflictException;
 import com.dremio.nessie.error.NessieError;
-import com.dremio.nessie.error.NessieNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 
@@ -40,7 +38,7 @@ public class ResponseCheckFilter {
     final NessieError error;
     try {
       status = con.getResponseCode();
-      if (status.getCode() > 199 && status.getCode() < 300) {
+      if (status.getCode() / 100 == 2) {
         return;
       }
     } catch (IOException e) {
@@ -53,23 +51,7 @@ public class ResponseCheckFilter {
       throw new HttpClientException(e);
     }
 
-    switch (status) {
-      case BAD_REQUEST:
-        throw new NessieBadRequestException(error);
-      case UNAUTHORIZED:
-        throw new NessieNotAuthorizedException(error);
-      case FORBIDDEN:
-        throw new NessieForbiddenException(error);
-      case NOT_FOUND:
-        throw new NessieNotFoundException(error);
-      case CONFLICT:
-        throw new NessieConflictException(error);
-      case INTERNAL_SERVER_ERROR:
-        throw new NessieInternalServerException(error);
-      default:
-        throw new NessieServiceException(error);
-    }
-
+    status.throwAsNessieException(error);
   }
 
   private static NessieError decodeErrorObject(Status status, InputStream inputStream, ObjectReader reader) {

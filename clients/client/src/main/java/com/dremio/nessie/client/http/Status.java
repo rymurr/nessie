@@ -15,32 +15,35 @@
  */
 package com.dremio.nessie.client.http;
 
-import java.util.Arrays;
+import java.io.IOException;
+
+import com.dremio.nessie.client.rest.NessieBadRequestException;
+import com.dremio.nessie.client.rest.NessieForbiddenException;
+import com.dremio.nessie.client.rest.NessieInternalServerException;
+import com.dremio.nessie.client.rest.NessieNotAuthorizedException;
+import com.dremio.nessie.client.rest.NessieServiceException;
+import com.dremio.nessie.error.NessieConflictException;
+import com.dremio.nessie.error.NessieError;
+import com.dremio.nessie.error.NessieNotFoundException;
 
 /**
  * HTTP request status enum. Map return code to concrete status type with message.
  */
-public enum Status {
+public final class Status {
 
-  OK(200, "OK"),
-  CREATED(201, "Created"),
-  ACCEPTED(202, "Accepted"),
-  NO_CONTENT(204, "No Content"),
-  BAD_REQUEST(400, "Bad Request"),
-  UNAUTHORIZED(401, "Unauthorized"),
-  FORBIDDEN(403, "Forbidden"),
-  NOT_FOUND(404, "Not Found"),
-  METHOD_NOT_ALLOWED(405, "Method Not Allowed"),
-  CONFLICT(409, "Conflict"),
-  PRECONDITION_FAILED(412, "Precondition Failed"),
-  UNSUPPORTED_MEDIA_TYPE(415, "Unsupported Media Type"),
-  INTERNAL_SERVER_ERROR(500, "Internal Server Error");
+  public static final Status OK = new Status(200, "OK");
+  public static final Status BAD_REQUEST = new Status(400, "Bad Request");
+  public static final Status UNAUTHORIZED = new Status(401, "Unauthorized");
+  public static final Status FORBIDDEN = new Status(403, "Forbidden");
+  public static final Status NOT_FOUND = new Status(404, "Not Found");
+  public static final Status CONFLICT = new Status(409, "Conflict");
+  public static final Status UNSUPPORTED_MEDIA_TYPE = new Status(415, "Unsupported Media Type");
+  public static final Status INTERNAL_SERVER_ERROR = new Status(500, "Internal Server Error");
 
   private final int code;
   private final String reason;
 
-
-  Status(final int statusCode, final String reason) {
+  private Status(final int statusCode, final String reason) {
     this.code = statusCode;
     this.reason = reason;
   }
@@ -51,11 +54,8 @@ public enum Status {
    * @return Status for return code
    * @throws UnsupportedOperationException if unknown status code
    */
-  public static Status fromCode(int code) {
-    return Arrays.stream(Status.values())
-                 .filter(x -> x.code == code)
-                 .findFirst()
-                 .orElseThrow(() -> new UnsupportedOperationException(String.format("Unknown status code %d", code)));
+  public static Status fromCode(int code, String message) {
+    return new Status(code, message);
   }
 
   public int getCode() {
@@ -64,5 +64,53 @@ public enum Status {
 
   public String getReason() {
     return reason;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    Status status = (Status) o;
+
+    return code == status.code;
+  }
+
+  @Override
+  public int hashCode() {
+    return code;
+  }
+
+  /**
+   * Throws this Status as a Nessie exception, either an instance of {@link NessieServiceException}
+   * (unchecked {@link RuntimeException} or an instanceof {@link com.dremio.nessie.error.BaseNessieClientServerException}
+   * (checked {@link IOException}).
+   *
+   * @param error error object to pass into the Nessie-exception instance
+   */
+  public void throwAsNessieException(NessieError error) throws IOException {
+    if (code == BAD_REQUEST.code) {
+      throw new NessieBadRequestException(error);
+    }
+    if (code == UNAUTHORIZED.code) {
+      throw new NessieNotAuthorizedException(error);
+    }
+    if (code == FORBIDDEN.code) {
+      throw new NessieForbiddenException(error);
+    }
+    if (code == NOT_FOUND.code) {
+      throw new NessieNotFoundException(error);
+    }
+    if (code == CONFLICT.code) {
+      throw new NessieConflictException(error);
+    }
+    if (code == INTERNAL_SERVER_ERROR.code) {
+      throw new NessieInternalServerException(error);
+    }
+    throw new NessieServiceException(error);
   }
 }

@@ -28,7 +28,7 @@ class ResponseContextImpl implements ResponseContext {
   }
 
   public Status getResponseCode() throws IOException {
-    return Status.fromCode(connection.getResponseCode());
+    return Status.fromCode(connection.getResponseCode(), connection.getResponseMessage());
   }
 
   public InputStream getInputStream() throws IOException {
