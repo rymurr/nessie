@@ -289,8 +289,17 @@ public class TestHttpClient {
     private final HttpServer server;
 
     TestServer(String context, HttpHandler handler) throws IOException {
+      HttpHandler safeHandler = exchange -> {
+        try {
+          handler.handle(exchange);
+        }
+        catch (RuntimeException | Error e) {
+          exchange.sendResponseHeaders(503, 0);
+          throw e;
+        }
+      };
       server = HttpServer.create(new InetSocketAddress("localhost",0), 0);
-      server.createContext(context, handler);
+      server.createContext(context, safeHandler);
       server.setExecutor(EXEC);
       server.start();
     }
