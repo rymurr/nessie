@@ -31,20 +31,20 @@ import java.util.stream.Collectors;
  */
 class UriBuilder {
 
-  private final String base;
+  private final String baseUri;
   private final List<String> uri = new ArrayList<>();
   private final Map<String, String> query = new HashMap<>();
   private final Map<String, String> templateValues = new HashMap<>();
 
-  UriBuilder(String base) {
-    base = checkNonNullTrim(base);
-    this.base = base;
+  UriBuilder(String baseUri) {
+    baseUri = checkNonNullTrim(baseUri);
+    this.baseUri = baseUri;
   }
 
-  private static String checkNonNullTrim(String base) {
-    Objects.requireNonNull(base);
-    base = base.trim();
-    return base;
+  private static String checkNonNullTrim(String str) {
+    Objects.requireNonNull(str);
+    str = str.trim();
+    return str;
   }
 
   UriBuilder path(String path) {
@@ -69,7 +69,7 @@ class UriBuilder {
   String build() throws HttpClientException {
     StringBuilder uriBuilder = new StringBuilder();
     List<String> transformedUri = new ArrayList<>();
-    transformedUri.add(base);
+    transformedUri.add(baseUri);
     for (String s: this.uri) {
       transformedUri.add(template(s));
     }

@@ -45,7 +45,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  */
 public class HttpClient {
   private final ObjectMapper mapper;
-  private final String base;
+  private final String baseUri;
   private final String accept;
   private final List<RequestFilter> requestFilters = new ArrayList<>();
   private final List<ResponseFilter> responseFilters = new ArrayList<>();
@@ -60,24 +60,24 @@ public class HttpClient {
   /**
    * Construct an HTTP client with a universal Accept header.
    *
-   * @param base uri base eg https://example.com
+   * @param baseUri uri base eg https://example.com
    * @param accept Accept header eg "application/json"
    */
-  public HttpClient(String base, String accept) {
-    base = checkNonNullTrim(base);
+  public HttpClient(String baseUri, String accept) {
+    baseUri = checkNonNullTrim(baseUri);
     accept = checkNonNullTrim(accept);
-    if (!base.startsWith("http://") && !base.startsWith("https://")) {
+    if (!baseUri.startsWith("http://") && !baseUri.startsWith("https://")) {
       throw new IllegalArgumentException("base URI must start with http:// or https://");
     }
 
     this.mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT)
                                     .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
-    this.base = base;
+    this.baseUri = baseUri;
     this.accept = accept;
   }
 
-  public HttpClient(String base) {
-    this(base, "application/json");
+  public HttpClient(String baseUri) {
+    this(baseUri, "application/json");
   }
 
   private static String checkNonNullTrim(String base) {
@@ -97,6 +97,6 @@ public class HttpClient {
   }
 
   public HttpRequest create() {
-    return new HttpRequest(base, accept, mapper, requestFilters, responseFilters);
+    return new HttpRequest(baseUri, accept, mapper, requestFilters, responseFilters);
   }
 }
