@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -36,20 +37,32 @@ class UriBuilder {
   private final Map<String, String> templateValues = new HashMap<>();
 
   UriBuilder(String base) {
+    base = checkNonNullTrim(base);
     this.base = base;
   }
 
+  private static String checkNonNullTrim(String base) {
+    Objects.requireNonNull(base);
+    base = base.trim();
+    return base;
+  }
+
   UriBuilder path(String path) {
+    path = checkNonNullTrim(path);
     uri.add(path);
     return this;
   }
 
   UriBuilder queryParam(String name, String value) {
+    name = checkNonNullTrim(name);
+    value = checkNonNullTrim(value);
     query.put(name, value);
     return this;
   }
 
   UriBuilder resolveTemplate(String name, String value) {
+    name = checkNonNullTrim(name);
+    value = checkNonNullTrim(value);
     templateValues.put(String.format("{%s}", name), value);
     return this;
   }
