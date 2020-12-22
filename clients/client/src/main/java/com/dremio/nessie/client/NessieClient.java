@@ -32,11 +32,10 @@ import java.util.function.Function;
 import com.dremio.nessie.api.ConfigApi;
 import com.dremio.nessie.api.ContentsApi;
 import com.dremio.nessie.api.TreeApi;
-import com.dremio.nessie.client.auth.AuthFilter;
 import com.dremio.nessie.client.auth.AwsAuth;
+import com.dremio.nessie.client.auth.BasicAuthFilter;
 import com.dremio.nessie.client.http.HttpClient;
 import com.dremio.nessie.client.http.HttpClientException;
-import com.dremio.nessie.client.http.RequestFilter;
 import com.dremio.nessie.client.rest.NessieHttpResponseFilter;
 import com.dremio.nessie.error.NessieConflictException;
 import com.dremio.nessie.error.NessieNotFoundException;
@@ -65,18 +64,27 @@ public class NessieClient implements Closeable {
    */
   private NessieClient(AuthType authType, String path, String username, String password) {
     client = new HttpClient(path);
-    client.register(authFilter(authType, username, password));
+    addAuth(client, authType, username, password);
     client.register(new NessieHttpResponseFilter());
     contents = wrap(ContentsApi.class, new ClientContentsApi(client));
     tree = wrap(TreeApi.class, new ClientTreeApi(client));
     config = wrap(ConfigApi.class, new ClientConfigApi(client));
   }
 
-  private RequestFilter authFilter(AuthType authType, String username, String password) {
-    if (authType.equals(AuthType.AWS)) {
-      return new AwsAuth();
+  private static void addAuth(HttpClient client, AuthType authType, String username, String password) {
+    switch (authType) {
+      case AWS:
+        client.register(new AwsAuth());
+        break;
+      case BASIC:
+        client.register(new BasicAuthFilter(username, password));
+        break;
+      case NONE:
+        // nothing to do here
+        break;
+      default:
+        throw new IllegalArgumentException("Unknown enum value for AuthType: " + authType);
     }
-    return new AuthFilter(authType, username, password);
   }
 
   @SuppressWarnings("unchecked")

@@ -24,14 +24,23 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 
 /**
  * Simple Http client to make REST calls.
- *
  * <p>
- *   Assumptions:
- *   - always send/receive JSON
- *   - set headers accordingly by default
- *   - very simple interactions w/ API
- *   - no cookies
- *   - no caching of connections. Could be slow
+ * Nessie uses its own, tiny HTTP client shim, because many clients like Hive2 and Hive3
+ * bundle different http-client implementations in rather incompatible versions. Given
+ * the requirements that Nessie has (low throughput, no "fancy" requests, etc), it's at
+ * least at the moment easier to bundle a simple http-client instead of adding another
+ * shaded dependency to the mix.
+ * </p>
+ * <p>
+ * Assumptions:
+ * <ul>
+ *   <li>always send/receive JSON</li>
+ *   <li>set headers accordingly by default</li>
+ *   <li>very simple interactions w/ API</li>
+ *   <li>no cookies</li>
+ *   <li>no caching of connections, rely on the keep-alive-cache via
+ *   {@link java.net.HttpURLConnection}</li>
+ * </ul>
  * </p>
  */
 public class HttpClient {
