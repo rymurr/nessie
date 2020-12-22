@@ -17,11 +17,8 @@ package com.dremio.nessie.client.http;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -32,8 +29,8 @@ import java.util.stream.Collectors;
 class UriBuilder {
 
   private final String baseUri;
-  private final List<String> uri = new ArrayList<>();
-  private final Map<String, String> query = new HashMap<>();
+  private final StringBuilder uri = new StringBuilder();
+  private final StringBuilder query = new StringBuilder();
   private final Map<String, String> templateValues = new HashMap<>();
 
   UriBuilder(String baseUri) {
@@ -49,13 +46,22 @@ class UriBuilder {
 
   UriBuilder path(String path) {
     path = checkNonNullTrim(path);
-    uri.add(path);
+    if (uri.length() > 0) {
+      uri.append('/');
+    }
+    uri.append(path);
     return this;
   }
 
   UriBuilder queryParam(String name, String value) {
     name = checkNonNullTrim(name);
-    query.put(name, value);
+    if (query.length() > 0) {
+      query.append('&');
+    }
+    query.append(encode(name));
+    if (value != null) {
+      query.append('=').append(encode(value));
+    }
     return this;
   }
 
@@ -68,35 +74,28 @@ class UriBuilder {
 
   String build() throws HttpClientException {
     StringBuilder uriBuilder = new StringBuilder();
-    List<String> transformedUri = new ArrayList<>();
-    transformedUri.add(baseUri);
-    for (String s: this.uri) {
-      transformedUri.add(template(s));
+    uriBuilder.append(baseUri);
+
+    if ('/' != uriBuilder.charAt(uriBuilder.length() - 1)) {
+      uriBuilder.append('/');
     }
-    if (!templateValues.isEmpty()) {
-      String keys = String.join(";", templateValues.keySet());
+
+    Map<String, String> templates = new HashMap<>(templateValues);
+    String replaced = Arrays.stream(uri.toString().split("/"))
+                 .map(p -> encode((templates.containsKey(p)) ? templates.remove(p) : p))
+                 .collect(Collectors.joining("/"));
+    uriBuilder.append(replaced);
+
+    if (!templates.isEmpty()) {
+      String keys = String.join(";", templates.keySet());
       throw new IllegalStateException(String.format("Cannot build uri. Not all template keys (%s) were used in uri %s", keys, uri));
     }
-    appendTo(uriBuilder, transformedUri.iterator(), "/");
 
-    if (!query.isEmpty()) {
-      uriBuilder.append("?");
-      List<String> params = new ArrayList<>();
-      for (Map.Entry<String, String> kv: query.entrySet()) {
-        if (kv.getValue() == null) {
-          continue;
-        }
-        params.add(String.format("%s=%s", encode(kv.getKey()), encode(kv.getValue())));
-      }
-      appendTo(uriBuilder, params.iterator(), "&");
+    if (query.length() > 0) {
+      uriBuilder.append("?").append(query);
     }
-    return uriBuilder.toString();
-  }
 
-  private String template(String input) throws HttpClientException {
-    return Arrays.stream(input.split("/"))
-                 .map(p -> encode((templateValues.containsKey(p)) ? templateValues.remove(p) : p))
-                 .collect(Collectors.joining("/"));
+    return uriBuilder.toString();
   }
 
   private static String encode(String s) throws HttpClientException {
@@ -107,15 +106,4 @@ class UriBuilder {
       throw new HttpClientException(e);
     }
   }
-
-  private static void appendTo(StringBuilder appendable, Iterator<String> parts, String separator) {
-    if (parts.hasNext()) {
-      appendable.append(parts.next());
-      while (parts.hasNext()) {
-        appendable.append(separator);
-        appendable.append(parts.next());
-      }
-    }
-  }
-
 }

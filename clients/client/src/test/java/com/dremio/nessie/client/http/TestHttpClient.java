@@ -190,7 +190,7 @@ public class TestHttpClient {
     ExampleBean inputBean = new ExampleBean("x", 1);
     HttpHandler handler = h -> {
       String queryParams = h.getRequestURI().getQuery();
-      Assertions.assertEquals(0, queryParams.length());
+      Assertions.assertEquals("x", queryParams);
       Assertions.assertEquals("GET", h.getRequestMethod());
       String response = objectMapper.writeValueAsString(inputBean);
       h.sendResponseHeaders(200, response.getBytes().length);
@@ -292,8 +292,7 @@ public class TestHttpClient {
       HttpHandler safeHandler = exchange -> {
         try {
           handler.handle(exchange);
-        }
-        catch (RuntimeException | Error e) {
+        } catch (RuntimeException | Error e) {
           exchange.sendResponseHeaders(503, 0);
           throw e;
         }
