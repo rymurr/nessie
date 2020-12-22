@@ -63,7 +63,7 @@ public class NessieClient implements Closeable {
    * @param username username (only for BASIC auth)
    * @param password password (only for BASIC auth)
    */
-  public NessieClient(AuthType authType, String path, String username, String password) {
+  private NessieClient(AuthType authType, String path, String username, String password) {
     client = new HttpClient(path);
     client.register(authFilter(authType, username, password));
     client.register(new NessieHttpResponseFilter());
