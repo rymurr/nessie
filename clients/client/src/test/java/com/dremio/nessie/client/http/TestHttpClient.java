@@ -22,11 +22,14 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,8 +38,24 @@ import com.sun.net.httpserver.HttpServer;
 
 public class TestHttpClient {
 
-  private static final Executor EXEC = Executors.newSingleThreadExecutor();
-  private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static ExecutorService EXEC;
+
+  @BeforeAll
+  static void setupThreadPool() {
+    EXEC = Executors.newCachedThreadPool();
+  }
+
+  @AfterAll
+  static void shutdownThreadPool() {
+    EXEC.shutdown();
+  }
+
+  private ObjectMapper objectMapper;
+
+  @BeforeEach
+  void setupMapper() {
+    objectMapper = new ObjectMapper();
+  }
 
   private static HttpRequest get(InetSocketAddress address) {
     return new HttpClient("http://localhost:" + address.getPort()).create();
@@ -47,7 +66,7 @@ public class TestHttpClient {
     ExampleBean inputBean = new ExampleBean("x", 1);
     HttpHandler handler = h -> {
       Assertions.assertEquals("GET", h.getRequestMethod());
-      String response = MAPPER.writeValueAsString(inputBean);
+      String response = objectMapper.writeValueAsString(inputBean);
       h.sendResponseHeaders(200, response.getBytes().length);
       OutputStream os = h.getResponseBody();
       os.write(response.getBytes());
@@ -66,7 +85,7 @@ public class TestHttpClient {
     ExampleBean inputBean = new ExampleBean("x", 1);
     HttpHandler handler = h -> {
       Assertions.assertEquals("PUT", h.getRequestMethod());
-      Object bean = MAPPER.readerFor(ExampleBean.class).readValue(h.getRequestBody());
+      Object bean = objectMapper.readerFor(ExampleBean.class).readValue(h.getRequestBody());
       Assertions.assertEquals(inputBean, bean);
       h.sendResponseHeaders(200, 0);
     };
@@ -82,7 +101,7 @@ public class TestHttpClient {
     ExampleBean inputBean = new ExampleBean("x", 1);
     HttpHandler handler = h -> {
       Assertions.assertEquals("POST", h.getRequestMethod());
-      Object bean = MAPPER.readerFor(ExampleBean.class).readValue(h.getRequestBody());
+      Object bean = objectMapper.readerFor(ExampleBean.class).readValue(h.getRequestBody());
       Assertions.assertEquals(inputBean, bean);
       h.sendResponseHeaders(200, 0);
     };
@@ -112,7 +131,7 @@ public class TestHttpClient {
     HttpHandler handler = h -> {
       Assertions.assertEquals("x=y", h.getRequestURI().getQuery());
       Assertions.assertEquals("GET", h.getRequestMethod());
-      String response = MAPPER.writeValueAsString(inputBean);
+      String response = objectMapper.writeValueAsString(inputBean);
       h.sendResponseHeaders(200, response.getBytes().length);
       OutputStream os = h.getResponseBody();
       os.write(response.getBytes());
@@ -136,7 +155,7 @@ public class TestHttpClient {
       Assertions.assertTrue(queryParamSet.contains("x=y"));
       Assertions.assertTrue(queryParamSet.contains("a=b"));
       Assertions.assertEquals("GET", h.getRequestMethod());
-      String response = MAPPER.writeValueAsString(inputBean);
+      String response = objectMapper.writeValueAsString(inputBean);
       h.sendResponseHeaders(200, response.getBytes().length);
       OutputStream os = h.getResponseBody();
       os.write(response.getBytes());
@@ -158,7 +177,7 @@ public class TestHttpClient {
       String queryParams = h.getRequestURI().getQuery();
       Assertions.assertEquals(0, queryParams.length());
       Assertions.assertEquals("GET", h.getRequestMethod());
-      String response = MAPPER.writeValueAsString(inputBean);
+      String response = objectMapper.writeValueAsString(inputBean);
       h.sendResponseHeaders(200, response.getBytes().length);
       OutputStream os = h.getResponseBody();
       os.write(response.getBytes());
@@ -178,7 +197,7 @@ public class TestHttpClient {
     ExampleBean inputBean = new ExampleBean("x", 1);
     HttpHandler handler = h -> {
       Assertions.assertEquals("GET", h.getRequestMethod());
-      String response = MAPPER.writeValueAsString(inputBean);
+      String response = objectMapper.writeValueAsString(inputBean);
       h.sendResponseHeaders(200, response.getBytes().length);
       OutputStream os = h.getResponseBody();
       os.write(response.getBytes());
