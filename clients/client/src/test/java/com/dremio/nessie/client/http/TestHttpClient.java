@@ -15,6 +15,9 @@
  */
 package com.dremio.nessie.client.http;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -59,6 +62,18 @@ public class TestHttpClient {
 
   private static HttpRequest get(InetSocketAddress address) {
     return new HttpClient("http://localhost:" + address.getPort()).create();
+  }
+
+  @Test
+  void testConstructorParameterValidation() {
+    assertAll(
+        () -> assertThrows(IllegalArgumentException.class, () -> new HttpClient("file:///", "application/json")),
+        () -> assertThrows(IllegalArgumentException.class, () -> new HttpClient("ftp:///", "application/json")),
+        () -> assertThrows(NullPointerException.class, () -> new HttpClient("file:///", null)),
+        () -> assertThrows(NullPointerException.class, () -> new HttpClient(null, "application/json")),
+        () -> new HttpClient("https://foo/", "application/json"),
+        () -> new HttpClient("http://foo/", "application/json")
+    );
   }
 
   @Test
@@ -217,9 +232,9 @@ public class TestHttpClient {
   void testGetTemplateThrows() {
     HttpHandler handler = h -> Assertions.fail();
     try (TestServer server = new TestServer("/a/b", handler)) {
-      Assertions.assertThrows(HttpClientException.class,
+      assertThrows(HttpClientException.class,
           () -> get(server.server.getAddress()).path("a/{b}").get().readEntity(ExampleBean.class));
-      Assertions.assertThrows(IllegalStateException.class,
+      assertThrows(IllegalStateException.class,
           () -> get(server.server.getAddress()).path("a/b").resolveTemplate("b", "b")
                                                                    .get().readEntity(ExampleBean.class));
     } catch (Exception e) {

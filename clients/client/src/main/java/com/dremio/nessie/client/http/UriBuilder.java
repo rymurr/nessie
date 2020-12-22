@@ -55,7 +55,6 @@ class UriBuilder {
 
   UriBuilder queryParam(String name, String value) {
     name = checkNonNullTrim(name);
-    value = checkNonNullTrim(value);
     query.put(name, value);
     return this;
   }

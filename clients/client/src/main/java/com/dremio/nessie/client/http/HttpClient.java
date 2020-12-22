@@ -17,6 +17,7 @@ package com.dremio.nessie.client.http;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -44,7 +45,7 @@ public class HttpClient {
     GET,
     POST,
     PUT,
-    DELETE;
+    DELETE
   }
 
   /**
@@ -54,6 +55,12 @@ public class HttpClient {
    * @param accept Accept header eg "application/json"
    */
   public HttpClient(String base, String accept) {
+    base = checkNonNullTrim(base);
+    accept = checkNonNullTrim(accept);
+    if (!base.startsWith("http://") && !base.startsWith("https://")) {
+      throw new IllegalArgumentException("base URI must start with http:// or https://");
+    }
+
     this.mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT)
                                     .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
     this.base = base;
@@ -62,6 +69,12 @@ public class HttpClient {
 
   public HttpClient(String base) {
     this(base, "application/json");
+  }
+
+  private static String checkNonNullTrim(String base) {
+    Objects.requireNonNull(base);
+    base = base.trim();
+    return base;
   }
 
   public void register(RequestFilter filter) {
